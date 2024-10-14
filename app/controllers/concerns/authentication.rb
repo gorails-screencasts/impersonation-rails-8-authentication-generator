@@ -1,6 +1,10 @@
 module Authentication
   extend ActiveSupport::Concern
 
+  # Routing constraints
+  Authenticated = ->(request) { Current.session ||= Session.find_by(id: request.cookie_jar.signed[:session_id]) }
+  Admin = ->(request) { Authenticated.call(request) && Current.user&.admin? }
+
   included do
     before_action :require_authentication
     helper_method :authenticated?
@@ -10,12 +14,13 @@ module Authentication
   class_methods do
     def allow_unauthenticated_access(**options)
       skip_before_action :require_authentication, **options
+      before_action :resume_session
     end
   end
 
   private
     def authenticated?
-      Current.session.present?
+      resume_session
     end
 
     def require_authentication
@@ -29,7 +34,9 @@ module Authentication
     end
 
     def find_session_by_cookie
-      Session.find_by(id: cookies.signed[:session_id])
+      if (id = request.cookie_jar.signed[:session_id])
+        Session.find_by(id: id)
+      end
     end
 
 

@@ -1,4 +1,12 @@
 Rails.application.routes.draw do
+  constraints Authentication::Admin do
+    get "admin", to: "main#admin"
+  end
+
+  constraints Authentication::Authenticated do
+    get "dashboard", to: "main#dashboard"
+  end
+
   resource :impersonate
   resource :session
   resources :passwords, param: :token
